@@ -1,0 +1,82 @@
+:root {
+  --grey-background: #dbd8e3;
+  --title-color: #fcc314;
+}
+
+body {
+  background-color: var(--grey-background);
+}
+h1 {
+  color: var(--title-color);
+  font-family: "Fira Sans", serif;
+  font-weight: 600;
+  font-style: normal;
+  text-align: center;
+  padding-top: 50px;
+  font-size: 50px;
+  letter-spacing: 1.5px;
+}
+h2 {
+  font-family: "Fleur De Leah", serif;
+  font-weight: 400;
+  font-style: normal;
+  text-align: center;
+}
+.tile-input {
+  width: 600px;
+
+  background: #eaf6f6;
+}
+.search-bar {
+  display: flex;
+  justify-content: left;
+  padding: 65px;
+}
+
+input {
+  width: 130px;
+  padding: 6px;
+  background-color: #eaf6f6;
+  border-radius: 50px;
+}
+.click-me:hover {
+  cursor: pointer;
+  background-color: var(--grey-background);
+  transition: all 1ms ease-in-out;
+}
+.pic-holder {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.creative-bulb {
+  border-radius: 20px;
+}
+.beauty-pic {
+  border-radius: 20px;
+}
+.ai-girl {
+  border-radius: 20px;
+}
+footer {
+  background-color: black;
+  margin-top: 1000px;
+}
+.info {
+  color: white;
+}
+.footer-text {
+  color: white;
+  font-family: poppins;
+  font-weight: 400;
+  font-size: 12px;
+  opacity: 0.7;
+  line-height: 24px;
+  margin-top: 25px;
+}
+.row-one {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  padding: 50px;
+  column-gap: 20px;
+}
