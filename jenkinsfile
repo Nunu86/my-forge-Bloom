@@ -3,7 +3,14 @@ pipeline {
    
     tools {
         nodejs 'Nodejs'
+        Docker 'Docker'
    }
+
+    environment {
+        // Define environment variables here if needed
+        DockerRepo-name = 'nunuokorie'
+        EC2-IP = '34.239.130.152'
+    }
 
     stages {
         stage('Checkout') {
@@ -31,7 +38,19 @@ pipeline {
             steps {
                 echo "Building the project..."
                 // Add build commands here
-                // sh 'make build'
+                sh 'docker build -t ${DockerRepo-name}/${BUILD_ID}:${BUILD_NUMBER} .'
+                
+                }
+        }
+
+        stage('Push') {
+            steps {
+                echo "Pushing the project to remote repo..."
+                // Add build commands here
+                withCredentials([usernamePassword(credentialsId: 'docker-credentials', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                     sh "echo $PASS | docker login -u ${USER} --password-stdin"
+                     sh "docker push ${DockerRepo-name}/${BUILD_ID}:${BUILD_NUMBER}"
+        }
             }
         }
 
@@ -40,7 +59,9 @@ pipeline {
             steps {
                 echo "Deploying the application..."
                 // Add deployment commands here
-                // sh './deploy.sh'
+                sshagent(['EC2']) {
+             sh "scp -o StrictHostKeyChecking=no ${dockerComposeFile} ubuntu@${EC2-IP}:/home/ubuntu"
+             sh "ssh -o StrictHostKeyChecking=no ubuntu@${EC2-IP} docker run ${dockerComposeFile}"
             }
         }
     }
