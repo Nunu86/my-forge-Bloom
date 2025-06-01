@@ -47,10 +47,11 @@ pipeline {
             steps {
                 echo "Pushing Docker image to repository..."
                 withCredentials([usernamePassword(credentialsId: 'docker-credentials', passwordVariable: 'PASSWORD', usernameVariable: 'USERNAME')]) {
-                    sh "echo $PASSWORD | docker login -u $USERNAME --password-stdin"
-                    sh "docker push ${DOCKER_REPO_NAME}:${DOCKER_IMAGE_TAG}"
+                    sh """
+                        echo "$PASSWORD" | docker login -u "$USERNAME" --password-stdin
+                        docker push ${DOCKER_REPO_NAME}:${DOCKER_IMAGE_TAG}
+                    """
                 }
-                
             }
         }
 
@@ -58,18 +59,15 @@ pipeline {
             steps {
                 echo "Deploying to EC2..."
                 sshagent(['EC2']) {
-                    echo 'Logging into prod instance...'
-                    sh "ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP}"
-                    echo 'Stopping and removing running containers (if running)'
-                    sh "docker stop ${RUNNING_CONTAINER} || true"
-                    sh "docker rm ${RUNNING_CONTAINER} || true"
-
-                    echo 'pulling and running new docker image'
-                    withCredentials([usernamePassword(credentialsId: 'docker-credentials', passwordVariable: 'PASSWORD', usernameVariable: 'USERNAME')]) {
-                    sh "echo $PASSWORD | docker login -u $USERNAME --password-stdin"
-                    sh "docker pull ${DOCKER_REPO_NAME}:${DOCKER_IMAGE_TAG}"
-                    sh "docker run -d --name ${RUNNING_CONTAINER} -p 80:80 ${DOCKER_REPO_NAME}:${DOCKER_IMAGE_TAG}"
-
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} '
+                            docker stop ${RUNNING_CONTAINER} || true &&
+                            docker rm ${RUNNING_CONTAINER} || true &&
+                            echo "$PASSWORD" | docker login -u "$USERNAME" --password-stdin &&
+                            docker pull ${DOCKER_REPO_NAME}:${DOCKER_IMAGE_TAG} &&
+                            docker run -d --name ${RUNNING_CONTAINER} -p 80:80 ${DOCKER_REPO_NAME}:${DOCKER_IMAGE_TAG}
+                        '
+                    """
                 }
             }
         }
@@ -78,7 +76,7 @@ pipeline {
     post {
         always {
             echo "Cleaning up workspace..."
-             cleanWs()  // Uncomment if you want to clean the workspace
+            cleanWs()  // Uncomment if needed
         }
         success {
             echo "Build and deploy completed successfully!"
