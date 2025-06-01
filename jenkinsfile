@@ -7,7 +7,9 @@ pipeline {
 
     environment {
         // Environment variables
-        DOCKER_REPO_NAME = 'nunuokorie'
+        DOCKER_REPO_NAME = 'nunuokorie/docker-jenkins'
+        DOCKER_CREDENTIALS_ID = 'docker-credentials'
+        DOCKER_REGISTRY ='https://hub.docker.com/u/nunuokorie'
         EC2_IP = '34.239.130.152'
         DOCKER_IMAGE_TAG = "${BUILD_ID}-${BUILD_NUMBER}"
         DOCKER_COMPOSE_FILE = 'docker-compose.yml'  // Adjust if needed
@@ -44,10 +46,12 @@ pipeline {
 
         stage('Push Docker Image') {
             steps {
-                echo "Pushing Docker image to repository..."
-                withCredentials([usernamePassword(credentialsId: 'docker-credentials', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-                    sh "echo $PASS | docker login -u ${USER} --password-stdin"
-                    sh "docker push ${DOCKER_REPO_NAME}:${DOCKER_IMAGE_TAG}"
+                script {
+                    echo "Pushing Docker image to repository..."
+                    docker.withRegistry('https://hub.docker.com/u/nunuokorie', "${DOCKER_CREDENTIALS_ID}")
+                        dockerImage.push("${DOCKER_IMAGE_TAG}")
+                }
+                
                 }
             }
         }
