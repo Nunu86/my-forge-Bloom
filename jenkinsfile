@@ -46,11 +46,13 @@ pipeline {
 
         stage('Push Docker Image') {
             steps {
-                script {
+                
                     echo "Pushing Docker image to repository..."
-                    docker.withRegistry('https://hub.docker.com/u/nunuokorie', "${DOCKER_CREDENTIALS_ID}")
-                        dockerImage.push("${DOCKER_IMAGE_TAG}")
-                }
+                    withCredentials([usernamePassword(credentialsId: 'docker-credentials', passwordVariable: 'PASSWORD', usernameVariable: 'USERNAME')]) {
+                    sh "echo $PASS | docker login -u ${USER} --password-stdin"
+                    sh "docker push ${DOCKER_REGISTRY}/${BUILD_ID}:${BUILD_NUMBER}"
+        }
+                
                 
                 }
             }
