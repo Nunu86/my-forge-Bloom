@@ -1,21 +1,23 @@
 pipeline {
     agent any
-   
+
     tools {
         nodejs 'Nodejs'
-        Docker 'Docker'
-   }
+        docker 'Docker'
+    }
 
     environment {
-        // Define environment variables here if needed
-        DockerRepo-name = 'nunuokorie'
-        EC2-IP = '34.239.130.152'
+        // Environment variables
+        DOCKER_REPO_NAME = 'nunuokorie'
+        EC2_IP = '34.239.130.152'
+        DOCKER_IMAGE_TAG = "${BUILD_ID}-${BUILD_NUMBER}"
+        DOCKER_COMPOSE_FILE = 'docker-compose.yml'  // Adjust if needed
     }
 
     stages {
         stage('Checkout') {
             steps {
-                echo "Checking out scm..."
+                echo "Checking out source code..."
                 git branch: 'main', credentialsId: 'Git-credentials', url: 'https://github.com/Nunu86/my-forge-Bloom.git'
             }
         }
@@ -23,10 +25,10 @@ pipeline {
         stage('Install dependencies') {
             steps {
                 echo "Installing dependencies..."
-             sh 'npm install'
+                sh 'npm install'
             }
         }
-       
+
         stage('Test') {
             steps {
                 echo "Running tests..."
@@ -34,49 +36,44 @@ pipeline {
             }
         }
 
-        stage('Build') {
+        stage('Build Docker Image') {
             steps {
-                echo "Building the project..."
-                // Add build commands here
-                sh 'docker build -t ${DockerRepo-name}/${BUILD_ID}:${BUILD_NUMBER} .'
-                
-                }
-        }
-
-        stage('Push') {
-            steps {
-                echo "Pushing the project to remote repo..."
-                // Add build commands here
-                withCredentials([usernamePassword(credentialsId: 'docker-credentials', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
-                     sh "echo $PASS | docker login -u ${USER} --password-stdin"
-                     sh "docker push ${DockerRepo-name}/${BUILD_ID}:${BUILD_NUMBER}"
-        }
+                echo "Building Docker image..."
+                sh "docker build -t ${DOCKER_REPO_NAME}:${DOCKER_IMAGE_TAG} ."
             }
         }
 
-        
+        stage('Push Docker Image') {
+            steps {
+                echo "Pushing Docker image to repository..."
+                withCredentials([usernamePassword(credentialsId: 'docker-credentials', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                    sh "echo $PASS | docker login -u ${USER} --password-stdin"
+                    sh "docker push ${DOCKER_REPO_NAME}:${DOCKER_IMAGE_TAG}"
+                }
+            }
+        }
+
         stage('Deploy') {
             steps {
-                echo "Deploying the application..."
-                // Add deployment commands here
+                echo "Deploying to EC2..."
                 sshagent(['EC2']) {
-             sh "scp -o StrictHostKeyChecking=no ${dockerComposeFile} ubuntu@${EC2-IP}:/home/ubuntu"
-             sh "ssh -o StrictHostKeyChecking=no ubuntu@${EC2-IP} docker run ${dockerComposeFile}"
+                    sh "scp -o StrictHostKeyChecking=no ${DOCKER_COMPOSE_FILE} ubuntu@${EC2_IP}:/home/ubuntu/"
+                    sh "ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} 'docker compose -f /home/ubuntu/${DOCKER_COMPOSE_FILE} up -d'"
+                }
             }
         }
     }
 
     post {
         always {
-            echo "Cleaning up..."
-            // Example: clean workspace
-            // cleanWs()
+            echo "Cleaning up workspace..."
+            // cleanWs()  // Uncomment if you want to clean the workspace after build
         }
         success {
-            echo "Build completed successfully!"
+            echo "Build and deploy completed successfully!"
         }
         failure {
-            echo "Build failed. Check logs!"
+            echo "Build or deployment failed. Check logs for details."
         }
     }
 }
