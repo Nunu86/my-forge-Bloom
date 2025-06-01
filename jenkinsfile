@@ -9,7 +9,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo "Checking out scm..."
-                git branch: 'main', credentialsId: '5509add3-a3d7-499f-b462-db8b22d68a16', url: 'https://github.com/Nunu86/my-forge-Bloom.git'
+                git branch: 'main', credentialsId: 'Git-credentials', url: 'https://github.com/Nunu86/my-forge-Bloom.git'
             }
         }
 
