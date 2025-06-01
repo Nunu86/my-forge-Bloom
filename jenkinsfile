@@ -8,11 +8,10 @@ pipeline {
     environment {
         // Environment variables
         DOCKER_REPO_NAME = 'nunuokorie/docker-jenkins'
-        DOCKER_CREDENTIALS_ID = 'docker-credentials'
-        DOCKER_REGISTRY = 'https://index.docker.io/v1/'  // Corrected for Docker Hub
-        EC2_IP = '34.239.130.152'
         DOCKER_IMAGE_TAG = "${BUILD_ID}-${BUILD_NUMBER}"
-        DOCKER_COMPOSE_FILE = 'docker-compose.yml'
+        DOCKER_REGISTRY = 'https://index.docker.io/v1/'  // Corrected for Docker Hub
+        EC2_IP = '34.239.130.152'        
+        RUNNING_CONTAINER = 'myapp'
     }
 
     stages {
@@ -47,10 +46,11 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 echo "Pushing Docker image to repository..."
-                withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS_ID}", passwordVariable: 'PASSWORD', usernameVariable: 'USERNAME')]) {
-                    sh 'echo $PASSWORD | docker login -u $USERNAME --password-stdin'
+                withCredentials([usernamePassword(credentialsId: 'docker-credentials', passwordVariable: 'PASSWORD', usernameVariable: 'USERNAME')]) {
+                    sh "echo $PASSWORD | docker login -u $USERNAME --password-stdin"
                     sh "docker push ${DOCKER_REPO_NAME}:${DOCKER_IMAGE_TAG}"
                 }
+                
             }
         }
 
@@ -58,8 +58,18 @@ pipeline {
             steps {
                 echo "Deploying to EC2..."
                 sshagent(['EC2']) {
-                    sh "scp -o StrictHostKeyChecking=no ${DOCKER_COMPOSE_FILE} ubuntu@${EC2_IP}:/home/ubuntu/"
-                    sh "ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} 'docker compose -f /home/ubuntu/${DOCKER_COMPOSE_FILE} up -d'"
+                    echo 'Logging into prod instance...'
+                    sh "ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP}"
+                    echo 'Stopping and removing running containers (if running)'
+                    sh "docker stop ${RUNNING_CONTAINER} || true"
+                    sh "docker rm ${RUNNING_CONTAINER} || true"
+
+                    echo 'pulling and running new docker image'
+                    withCredentials([usernamePassword(credentialsId: 'docker-credentials', passwordVariable: 'PASSWORD', usernameVariable: 'USERNAME')]) {
+                    sh "echo $PASSWORD | docker login -u $USERNAME --password-stdin"
+                    sh "docker pull ${DOCKER_REPO_NAME}:${DOCKER_IMAGE_TAG}"
+                    sh "docker run -d --name ${RUNNING_CONTAINER} -p 80:80 ${DOCKER_REPO_NAME}:${DOCKER_IMAGE_TAG}"
+
                 }
             }
         }
@@ -68,7 +78,7 @@ pipeline {
     post {
         always {
             echo "Cleaning up workspace..."
-            // cleanWs()  // Uncomment if you want to clean the workspace
+             cleanWs()  // Uncomment if you want to clean the workspace
         }
         success {
             echo "Build and deploy completed successfully!"
