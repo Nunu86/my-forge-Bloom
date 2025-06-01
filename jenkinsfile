@@ -1,0 +1,65 @@
+pipeline {
+    agent any
+   
+    tools {
+        nodejs 'Nodejs'
+   }
+    environment {
+        // Define environment variables here if needed
+        // EXAMPLE_VAR = 'value'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo "Checking out scm..."
+                git branch: 'main', credentialsId: '5509add3-a3d7-499f-b462-db8b22d68a16', url: 'https://github.com/Nunu86/my-forge-Bloom.git'
+            }
+        }
+
+        stage('Install dependencies') {
+            steps {
+                echo "Installing dependencies..."
+             sh 'npm install'
+            }
+        }
+       
+        stage('Test') {
+            steps {
+                echo "Running tests..."
+                sh 'npm test'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo "Building the project..."
+                // Add build commands here
+                // sh 'make build'
+            }
+        }
+
+        
+        stage('Deploy') {
+            steps {
+                echo "Deploying the application..."
+                // Add deployment commands here
+                // sh './deploy.sh'
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "Cleaning up..."
+            // Example: clean workspace
+            // cleanWs()
+        }
+        success {
+            echo "Build completed successfully!"
+        }
+        failure {
+            echo "Build failed. Check logs!"
+        }
+    }
+}
