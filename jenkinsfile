@@ -4,10 +4,6 @@ pipeline {
     tools {
         nodejs 'Nodejs'
    }
-    environment {
-        // Define environment variables here if needed
-        // EXAMPLE_VAR = 'value'
-    }
 
     stages {
         stage('Checkout') {
