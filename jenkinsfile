@@ -40,21 +40,11 @@ pipeline {
         }
 
         stage('Code Analysis with SonarQube') {
-          environment{
-            scannerHome = tool 'sonarscanner'
-          }
+          
           steps {
                 echo "🔍 Running SonarQube analysis..."
                 withSonarQubeEnv('sonarserver') {
-                    sh """
-                        ${scannerHome}/bin/sonar-scanner \
-                        -Dsonar.projectKey=ForgeBloom \
-                        -Dsonar.projectName=ForgeBloom \
-                        -Dsonar.projectVersion=1.0 \
-                        -Dsonar.sources=. \
-                        -Dsonar.language=js \
-                        -Dsonar.sourceEncoding=UTF-8
-                    """
+                    sh 'sonar-scanner'                       
                 }
             }
         }
