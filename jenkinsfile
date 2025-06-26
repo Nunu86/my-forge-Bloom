@@ -3,49 +3,68 @@ pipeline {
 
     tools {
         nodejs 'NodeJS'
+        sonar 'sonarscanner'
     }
 
     environment {
-        // Environment variables
-        DOCKER_REPO_NAME = 'nunuokorie/docker-jenkins'
+        DOCKER_REPO_NAME = 'nunuokorie/dgcl-project'
         DOCKER_IMAGE_TAG = "${BUILD_ID}-${BUILD_NUMBER}"
-        DOCKER_REGISTRY = 'https://index.docker.io/v1/'  // Corrected for Docker Hub
-        EC2_IP = '3.82.174.129'        
+        DOCKER_REGISTRY = 'https://index.docker.io/v1/'
+        EC2_IP = '3.82.174.129'
         RUNNING_CONTAINER = 'myapp'
     }
 
     stages {
         stage('Checkout') {
             steps {
-                echo "Checking out source code..."
-                git branch: 'main', credentialsId: 'Git-credentials', url: 'https://github.com/Nunu86/my-forge-Bloom.git'
+                echo "📥 Checking out source code..."
+                git branch: 'main',
+                    credentialsId: 'Git-credentials',
+                    url: 'https://github.com/Nunu86/my-forge-Bloom.git'
             }
         }
 
         stage('Install dependencies') {
             steps {
-                echo "Installing dependencies..."
+                echo "📦 Installing Node.js dependencies..."
                 sh 'npm install'
             }
         }
 
         stage('Test') {
             steps {
-                echo "Running tests..."
+                echo "🧪 Running tests..."
                 sh 'npm test'
+            }
+        }
+
+        stage('Code Analysis with SonarQube') {
+            steps {
+                echo "🔍 Running SonarQube analysis..."
+                withSonarQubeEnv('sonarserver') {
+                    sh """
+                        sonar-scanner \
+                        -Dsonar.projectKey=ForgeBloom \
+                        -Dsonar.projectName=ForgeBloom \
+                        -Dsonar.projectVersion=1.0 \
+                        -Dsonar.sources=. \
+                        -Dsonar.language=js \
+                        -Dsonar.sourceEncoding=UTF-8
+                    """
+                }
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                echo "Building Docker image..."
+                echo "🐳 Building Docker image..."
                 sh "docker build -t ${DOCKER_REPO_NAME}:${DOCKER_IMAGE_TAG} ."
             }
         }
 
         stage('Push Docker Image') {
             steps {
-                echo "Pushing Docker image to repository..."
+                echo "📤 Pushing Docker image to Docker Hub..."
                 withCredentials([usernamePassword(credentialsId: 'docker-credentials', passwordVariable: 'PASSWORD', usernameVariable: 'USERNAME')]) {
                     sh """
                         echo "$PASSWORD" | docker login -u "$USERNAME" --password-stdin
@@ -55,16 +74,15 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy to EC2') {
             steps {
-                echo "Deploying to EC2..."
+                echo "🚀 Deploying to EC2 instance..."
                 sshagent(['EC2']) {
                     sh """
                         ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} '
-                            docker stop ${RUNNING_CONTAINER} || true &&
-                            docker rm ${RUNNING_CONTAINER} || true &&
-                            echo "$PASSWORD" | docker login -u "$USERNAME" --password-stdin &&
-                            docker pull ${DOCKER_REPO_NAME}:${DOCKER_IMAGE_TAG} &&
+                            docker stop ${RUNNING_CONTAINER} || true
+                            docker rm ${RUNNING_CONTAINER} || true
+                            docker pull ${DOCKER_REPO_NAME}:${DOCKER_IMAGE_TAG}
                             docker run -d --name ${RUNNING_CONTAINER} -p 80:80 ${DOCKER_REPO_NAME}:${DOCKER_IMAGE_TAG}
                         '
                     """
@@ -75,14 +93,14 @@ pipeline {
 
     post {
         always {
-            echo "Cleaning up workspace..."
-            cleanWs()  // Uncomment if needed
+            echo "🧹 Cleaning up workspace..."
+            cleanWs()
         }
         success {
-            echo "Build and deploy completed successfully!"
+            echo "✅ Build and deploy completed successfully!"
         }
         failure {
-            echo "Build or deployment failed. Check logs for details."
+            echo "❌ Build or deployment failed. Check logs for details."
         }
     }
 }
