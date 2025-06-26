@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     tools {
-        nodejs 'Nodejs'
+        nodejs 'NodeJS'
     }
 
     environment {
@@ -10,7 +10,7 @@ pipeline {
         DOCKER_REPO_NAME = 'nunuokorie/docker-jenkins'
         DOCKER_IMAGE_TAG = "${BUILD_ID}-${BUILD_NUMBER}"
         DOCKER_REGISTRY = 'https://index.docker.io/v1/'  // Corrected for Docker Hub
-        EC2_IP = '34.239.130.152'        
+        EC2_IP = '3.82.174.129'        
         RUNNING_CONTAINER = 'myapp'
     }
 
