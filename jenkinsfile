@@ -3,7 +3,7 @@ pipeline {
 
     tools {
         nodejs 'NodeJS'
-        sonarQubeScanner 'sonarscanner'
+        
        
     }
 
@@ -40,11 +40,14 @@ pipeline {
         }
 
         stage('Code Analysis with SonarQube') {
-            steps {
+          environment{
+            scannerHome = tool 'sonarscanner'
+          }
+          steps {
                 echo "🔍 Running SonarQube analysis..."
                 withSonarQubeEnv('sonarserver') {
                     sh """
-                        sonar-scanner \
+                        ${scannerHome}/bin/sonar-scanner \
                         -Dsonar.projectKey=ForgeBloom \
                         -Dsonar.projectName=ForgeBloom \
                         -Dsonar.projectVersion=1.0 \
